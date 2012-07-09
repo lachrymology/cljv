@@ -11,6 +11,11 @@
                   (not (contains? excludes name))))
           (file-seq dir)))
 
+(defn mkdirs
+  "Create all parent directories for the passed file."
+  [^java.io.File f]
+  (.mkdirs (.getParentFile (.getCanonicalFile f))))
+
 (defn- path-seq
   [file-str]
   (->> java.io.File/separator
