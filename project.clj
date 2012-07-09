@@ -7,5 +7,5 @@
                      [swank-clojure "1.4.2"]
                      [lein-marginalia "0.7.1"]]
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"}
-  :source-path "src/main/clojure"
-  :test-path   "src/test/clojure")
+  :source-path "src/clj"
+  :test-path   "src/test")

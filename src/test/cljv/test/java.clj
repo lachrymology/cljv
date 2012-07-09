@@ -1,6 +1,7 @@
 (ns cljv.test.java
-  (:use [cljv.java])
-  (:use [clojure.test]))
+  (:use [cljv.java]
+        [clojure.test]
+        [cljv.test.common]))
 
-(deftest replace-me ;; FIXME: write
-  (is false "No tests have been written."))
+(deftest cljv-test-java
+  (defer "testing of the Java-specific source generation."))
