@@ -1,4 +1,5 @@
 (ns cljv.test.emitter
+  (:refer-clojure :exclude (munge))
   (:use [cljv.emitter]
         [clojure.test]
         [cljv.test.common]))

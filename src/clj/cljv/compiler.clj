@@ -1,5 +1,6 @@
 (ns cljv.compiler
   (:require [cljv.java :as java]
+            [cljv.parser :as parser]
             [cljv.emitter :as emitter]
             [cljv.util :as util] 
             [cljs.tagged-literals :as tags]
@@ -8,7 +9,6 @@
             [clojure.java.io :as io]))
 
 (def ^:static +OUT-DIR+ "out")
-(def ^:dynamic *position* nil)
 
 (defmacro with-core-cljv
   "Ensure that core.cljv has been loaded."
@@ -24,14 +24,15 @@
                 ana/*cljs-ns* 'cljv.user                            ;;
                 ana/*cljs-file* (.getPath ^java.io.File src)        ;;
                 *data-readers* tags/*cljs-data-readers*             ;;
-                *position* (atom [0 0])]
+                parser/*position* (atom [0 0])]
         (loop [forms (common/forms-seq src)
                ns-name nil
                deps nil]
           (if (seq forms)
             (let [env (ana/empty-env)
-                  ast (ana/analyze env (first forms))]
-              (do (emitter/emit ast)                                ;;
+                  ast (ana/analyze env (first forms))
+                  parse-tree (parser/parse ast)]
+              (do (emitter/emit parse-tree)
                   (if (= (:op ast) :ns)
                     (recur (rest forms) (:name ast) (merge (:uses ast) (:requires ast)))
                     (recur (rest forms) ns-name deps))))
