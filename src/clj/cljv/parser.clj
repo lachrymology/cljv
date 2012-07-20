@@ -113,10 +113,46 @@
    :jvdoc (:jsdoc init)
    :export export})
 
+(defmethod parse :do
+  [{:keys [statements ret env]}]
+  {:node :do
+   :context (:context env)
+   :env env
+   :statements statements
+   :ret ret})
+
+(defmethod parse :try*
+  [{:keys [env try catch name finally]}]
+  (assert (not= :constant (-> finally :ret :op))
+          "finally block cannot contain constant")
+  
+  (let [context (:context env)]
+    {:node :try*
+     :context context
+     :subcontext (if (= :expr context) :return context)
+     :name name
+     :try try
+     :catch catch
+     :finally finally
+     :try-statements (:statements try)
+     :try-ret (:ret try)
+     :catch-statements (:statements catch)
+     :catch-ret (:ret catch)
+     :finally-statements (:statements finally)
+     :finally-ret (:ret finally)}))
+
+
+(defmethod parse :let
+  [{:keys [bindings statements ret env loop]}]
+  {:node :let
+   :context (:context env)
+   :env env
+   :bindings bindings  ;;?
+   :loop loop
+   :statements statements
+   :ret ret})
+
 (defmethod parse :fn [_])
-(defmethod parse :do [_])
-(defmethod parse :try* [_])
-(defmethod parse :let [_])
 (defmethod parse :recur [_])
 (defmethod parse :letfn [_])
 (defmethod parse :invoke [_])
