@@ -3,6 +3,12 @@
             [clojure.string :as string]
             [cljs.compiler :as common]))
 
+;; TODO
+;; - parse subnodes
+;; - munge here?
+;; - convenience macro with post-conditions
+
+
 (defmulti parse :op)
 
 (def ^:dynamic *position* nil)
@@ -147,28 +153,97 @@
   {:node :let
    :context (:context env)
    :env env
-   :bindings bindings  ;;?
+   :bindings bindings  ;; parse
    :loop loop
    :statements statements
    :ret ret})
 
-(defmethod parse :fn [_])
-(defmethod parse :recur [_])
-(defmethod parse :letfn [_])
-(defmethod parse :invoke [_])
+(defmethod parse :recur
+  [{:keys [frame exprs env]}]
+  {:node recur
+   :context (:context env)
+   :env env
+   :temps (vec (take (count exprs) (repeatedly gensym)))
+   :names (:names frame)
+   :exprs exprs})
 
 (defmethod parse :new
   [{:keys [ctor args env]}]
   {:node :new
    :args args
    :context (:context env)
+   :ctor ctor
    :env env})
 
-(defmethod parse :set! [_])
-(defmethod parse :ns [_])
-(defmethod parse :deftype* [_])
-(defmethod parse :defrecord* [_])
-(defmethod parse :dot [_])
-(defmethod parse :java [_])
+(defmethod parse :letfn
+  [{:keys [bindings statements ret env]}]
+  {:node :letfn
+   :context (:context env)
+   :env env
+   :bindings bindings
+   :statements statements
+   :ret ret})
+
+(defmethod parse :set!
+  [{:keys [target val env]}]
+  {:node :set!
+   :context (:context env)
+   :env env
+   :target target
+   :val val})
+
+(defmethod parse :ns
+  [{:keys [name requires uses requires-macros env]}]
+  {:node :ns
+   :context (:context env)
+   :env env
+   :name name
+   :requires requires
+   :uses uses
+   :requires-macros requires-macros
+   :special-namespaces #{'cljv.core}})
+
+(defmethod parse :deftype*
+  [{:keys [t fields pmasks]}]
+  {:node :deftype*
+   :context (:context env)
+   :env env
+   :t t
+   :fields fields
+   :pmasks pmasks})
+
+(defmethod parse :defrecord*
+  [{:keys [t fields pmasks]}]
+  {:node :defrecord*
+   :context (:context env)
+   :env env
+   :t t
+   :fields fields
+   :extra-fields = '[__meta __extmap]
+   :pmasks pmasks})
+
+(defmethod parse :dot
+  [{:keys [target field method args env]}]
+  {:node :dot
+   :context (:context env)
+   :env env
+   :target target
+   :field field
+   :method method
+   :args args})
+
+(defmethod parse :fn [_])
+(defmethod parse :invoke [_])
+
+
+(defmethod parse :java
+  [{:keys [env code segs args]}]
+  {:node :java
+   :context (:context env)
+   :env env
+   :code code
+   :segs segs
+   :args args})
+
 (defmethod parse :default [_])
 
