@@ -1,7 +1,8 @@
 (ns cljv.parser
   (:require [cljv.java :as java]
             [clojure.string :as string]
-            [cljs.compiler :as common]))
+            [cljs.compiler :as common]
+            [cljs.analyzer :as ana]))
 
 ;; TODO
 ;; - parse subnodes
@@ -160,7 +161,7 @@
 
 (defmethod parse :recur
   [{:keys [frame exprs env]}]
-  {:node recur
+  {:node :recur
    :context (:context env)
    :env env
    :temps (vec (take (count exprs) (repeatedly gensym)))
@@ -204,7 +205,7 @@
    :special-namespaces #{'cljv.core}})
 
 (defmethod parse :deftype*
-  [{:keys [t fields pmasks]}]
+  [{:keys [t fields pmasks env]}]
   {:node :deftype*
    :context (:context env)
    :env env
@@ -213,13 +214,13 @@
    :pmasks pmasks})
 
 (defmethod parse :defrecord*
-  [{:keys [t fields pmasks]}]
+  [{:keys [t fields pmasks env]}]
   {:node :defrecord*
    :context (:context env)
    :env env
    :t t
    :fields fields
-   :extra-fields = '[__meta __extmap]
+   :extra-fields '[__meta __extmap]
    :pmasks pmasks})
 
 (defmethod parse :dot
@@ -232,9 +233,89 @@
    :method method
    :args args})
 
-(defmethod parse :fn [_])
-(defmethod parse :invoke [_])
+(defmethod parse :fn
+  [{:keys [name env methods max-fixed-arity variadic recur-frames loop-lets]}]
+  {:node :fn
+   :context (:context env)
+   :env env
+   :max-fixed-arity max-fixed-arity
+   :variadic variadic
+   :loop-locals (->> (concat (mapcat :names (filter #(and % @(:flag %)) recur-frames))
+                             (mapcat :names loop-lets))
+                     seq)
+   :name (or name (gensym))
+   :max-params (apply max-key count (map :params methods))
+   :methods (sort-by #(-> % :params count) methods)})  ;; much parsing to do here
 
+(defn- infer-protocol-dispatch
+  [{:keys [f args env]}]
+  (let [info (-> f :info)
+        protocol (:protocol info)
+        tag (infer-tag (first args))]
+    (and protocol tag
+         (or ana/*cljs-static-fns*
+             (:protocol-inline env))
+         (or (= protocol tag)
+             (when-let [ps (:protocols (ana/resolve-existing-var (dissoc env :locals) tag))]
+               (ps protocol))))))
+
+;; TODO: needs love
+(defmethod parse :invoke
+  [{:keys [f args env] :as expr}]
+  (let [info (:info f)
+        protocol (:protocol info)
+        arity (count args)
+        variadic? (:variadic info)
+        mps (:method-params info)
+        mfa (:max-fixed-arity info)
+        proto? (infer-protocol-dispatch expr)]
+    {:node :invoke
+     :context (:context env)
+     :env env
+     :info info
+     :arity arity
+     :variadic? variadic?
+     :method-params mps
+     :fn? (and ana/*cljs-static-fns*
+               (not (:dynamic info))
+               (:fn-var info))
+     :protocol protocol
+     :proto? proto?
+     :opt-not? (and (= (:name info) 'cljs.core/not)
+                    (= (infer-tag (first (:args expr))) 'boolean))
+     :ns (:ns info)
+     :args args
+     :java? (= 'js (:ns info))   ;; wrong, rethink this
+     :keyword? (and (= (-> f :op) :constant)
+                    (keyword? (-> f :form)))
+     :dispatch (cond
+                (and (not variadic?) (= (count mps) 1))
+                {:f f
+                 :max-fixed-arity nil
+                 :variadic? false
+                 :rename? false
+                 :direct? true}
+
+                (and variadic? (> arity mfa))
+                {:f f
+                 :max-fixed-arity mfa
+                 :variadic? true
+                 :rename? true
+                 :direct? true}
+
+                :else
+                (let [arities (map count mps)]
+                  (if (some #{arity} arities)
+                    {:f f
+                     :max-fixed-arity mfa
+                     :direct? true
+                     :rename? true
+                     :variadic? false}
+                    {:f f
+                     :max-fixed-arity mfa
+                     :variadic? false
+                     :rename? false
+                     :direct? true})))}))
 
 (defmethod parse :java
   [{:keys [env code segs args]}]
