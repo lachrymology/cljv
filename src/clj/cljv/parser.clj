@@ -264,9 +264,10 @@
   [{:keys [f args env] :as expr}]
   (let [info (:info f)
         protocol (:protocol info)
-        arity (count args)
         variadic? (:variadic info)
+        arity (count args)
         mps (:method-params info)
+        arities (map count mps)
         mfa (:max-fixed-arity info)
         proto? (infer-protocol-dispatch expr)]
     {:node :invoke
@@ -303,19 +304,19 @@
                  :rename? true
                  :direct? true}
 
+                (and arities (some #{arity} arities))
+                {:f f
+                 :max-fixed-arity mfa
+                 :direct? true
+                 :rename? true
+                 :variadic? false}
+
                 :else
-                (let [arities (map count mps)]
-                  (if (some #{arity} arities)
-                    {:f f
-                     :max-fixed-arity mfa
-                     :direct? true
-                     :rename? true
-                     :variadic? false}
-                    {:f f
-                     :max-fixed-arity mfa
-                     :variadic? false
-                     :rename? false
-                     :direct? true})))}))
+                {:f f
+                 :max-fixed-arity mfa
+                 :variadic? false
+                 :rename? false
+                 :direct? true})}))
 
 (defmethod parse :java
   [{:keys [env code segs args]}]
