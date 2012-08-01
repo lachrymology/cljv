@@ -97,10 +97,10 @@
   [{:keys [test then else env unchecked]}]
   {:node :if
    :context (:context env)
-   :test test
+   :test (parse test)
    :checked (not (or unchecked (safe-test? test)))
-   :then then
-   :else else
+   :then (parse then)
+   :else (parse else)
    :env env})
 
 (defmethod parse :throw
@@ -108,14 +108,16 @@
   {:node :throw
    :context (:context env)
    :env env
-   :throw throw})
+   :throw (parse throw)})
 
 (defmethod parse :def
   [{:keys [name init env doc export]}]
   {:node :def
    :context (:context env)
    :env env
-   :name name
+   :name (parse name)
+   :init (parse init)
+   :export (parse export)
    :doc doc
    :jvdoc (:jsdoc init)
    :export export})
@@ -125,8 +127,8 @@
   {:node :do
    :context (:context env)
    :env env
-   :statements statements
-   :ret ret})
+   :statements (map parse statements)
+   :ret (parse ret)})
 
 (defmethod parse :try*
   [{:keys [env try catch name finally]}]
@@ -137,16 +139,16 @@
     {:node :try*
      :context context
      :subcontext (if (= :expr context) :return context)
-     :name name
+     :name (parse name)
      :try try
      :catch catch
      :finally finally
-     :try-statements (:statements try)
-     :try-ret (:ret try)
-     :catch-statements (:statements catch)
-     :catch-ret (:ret catch)
-     :finally-statements (:statements finally)
-     :finally-ret (:ret finally)}))
+     :try-statements (map parse (:statements try))
+     :try-ret (parse (:ret try))
+     :catch-statements (map parse (:statements catch))
+     :catch-ret (parse (:ret catch))
+     :finally-statements (map parse (:statements finally))
+     :finally-ret (parse (:ret finally))}))
 
 
 (defmethod parse :let
@@ -154,10 +156,13 @@
   {:node :let
    :context (:context env)
    :env env
-   :bindings bindings  ;; parse
+   :bindings (map (fn [{:keys [name init]}]
+                    {:name name
+                     :init (parse init)})
+                  bindings)
    :loop loop
-   :statements statements
-   :ret ret})
+   :statements (map parse statements)
+   :ret (parse ret)})
 
 (defmethod parse :recur
   [{:keys [frame exprs env]}]
