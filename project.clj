@@ -5,8 +5,8 @@
                  [org.clojure/core.unify "0.5.3"]
                  [cljv/clj-soy "0.3.0"]]
   :dev-dependencies [[jline "0.9.94"]
-                     [swank-clojure "1.4.2"]
                      [lein-marginalia "0.7.1"]]
+  :plugins [[lein-swank "1.4.4"]]
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"}
-  :source-path "src/clj"
-  :test-path   "src/test")
+  :source-paths ["src/clj"]
+  :test-paths   ["src/test"])
