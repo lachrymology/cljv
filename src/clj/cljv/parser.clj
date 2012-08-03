@@ -119,8 +119,7 @@
    :init (parse init)
    :export (parse export)
    :doc doc
-   :jvdoc (:jsdoc init)
-   :export export})
+   :jvdoc (:jsdoc init)})
 
 (defmethod parse :do
   [{:keys [statements ret env]}]
@@ -171,14 +170,14 @@
    :env env
    :temps (vec (take (count exprs) (repeatedly gensym)))
    :names (:names frame)
-   :exprs exprs})
+   :exprs (map parse exprs)})
 
 (defmethod parse :new
   [{:keys [ctor args env]}]
   {:node :new
-   :args args
+   :args (map parse args)
    :context (:context env)
-   :ctor ctor
+   :ctor (parse ctor)
    :env env})
 
 (defmethod parse :letfn
@@ -186,17 +185,20 @@
   {:node :letfn
    :context (:context env)
    :env env
-   :bindings bindings
-   :statements statements
-   :ret ret})
+   :bindings (map (fn [{:keys [name init]}]
+                    {:name name
+                     :init (parse init)})
+                  bindings)
+   :statements (map parse statements)
+   :ret (parse ret)})
 
 (defmethod parse :set!
   [{:keys [target val env]}]
   {:node :set!
    :context (:context env)
    :env env
-   :target target
-   :val val})
+   :target (parse target)
+   :val (parse val)})
 
 (defmethod parse :ns
   [{:keys [name requires uses requires-macros env]}]
@@ -210,18 +212,20 @@
    :special-namespaces #{'cljv.core}})
 
 (defmethod parse :deftype*
-  [{:keys [t fields pmasks env]}]
+  [{:keys [t fields pmasks env children]}]
   {:node :deftype*
    :context (:context env)
+   :children (map parse children)
    :env env
    :t t
    :fields fields
    :pmasks pmasks})
 
 (defmethod parse :defrecord*
-  [{:keys [t fields pmasks env]}]
+  [{:keys [t fields pmasks env children]}]
   {:node :defrecord*
    :context (:context env)
+   :children (map parse children)
    :env env
    :t t
    :fields fields
@@ -236,7 +240,7 @@
    :target target
    :field field
    :method method
-   :args args})
+   :args (map parse args)})
 
 (defmethod parse :fn
   [{:keys [name env methods max-fixed-arity variadic recur-frames loop-lets]}]
