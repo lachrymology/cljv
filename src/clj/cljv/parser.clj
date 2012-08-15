@@ -2,7 +2,8 @@
   (:require [cljv.java :as java]
             [clojure.string :as string]
             [cljs.compiler :as common]
-            [cljs.analyzer :as ana]))
+            [cljs.analyzer :as ana]
+            [cljv.parser.fun :as fun]))
 
 ;; TODO
 ;; - parse subnodes
@@ -243,18 +244,8 @@
    :args (map parse args)})
 
 (defmethod parse :fn
-  [{:keys [name env methods max-fixed-arity variadic recur-frames loop-lets]}]
-  {:node :fn
-   :context (:context env)
-   :env env
-   :max-fixed-arity max-fixed-arity
-   :variadic variadic
-   :loop-locals (->> (concat (mapcat :names (filter #(and % @(:flag %)) recur-frames))
-                             (mapcat :names loop-lets))
-                     seq)
-   :name (or name (gensym))
-   :max-params (apply max-key count (map :params methods))
-   :methods (sort-by #(-> % :params count) methods)})  ;; much parsing to do here
+  [node]
+  (fun/parse-fn-ast node))  ;; deferring to a specialist
 
 (defn- infer-protocol-dispatch
   [{:keys [f args env]}]
