@@ -327,5 +327,6 @@
    :segs segs
    :args args})
 
-(defmethod parse :default [_])
+(defmethod parse :default [_]
+  (throw (Exception. "Unknown parse form")))
 
