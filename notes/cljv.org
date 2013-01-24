@@ -1,41 +1,20 @@
 * Cljv
 * Rationale
 ** What
-*** Compiler that compiles (a subset of?) Clojure to Javascript
+*** Compiler that compiles (a subset of?) Clojure to Java
 ** Why?
-*** Because js is the only universally available client target
-**** and can't be supplanted due to its browser integration and installed base
-**** yet isn't very good, expressive, concise, or robust
-**** but JS engines continue to get lots of optimization love, and are now quite capable perf-wise
-*** Use same skillset and libs for client and server
-**** only other similar options are:
-***** JS native client, JS (e.g. node) server
-****** node still much less powerful than JVM, and might be a mere fad
-***** Java (GWT) client, Java native server
-****** GWT has lots of baggage due to semantic mismatches etc
-****** but familiar tooling if already a Java dev
-***** esoteric, open question as to skills and libs:
-****** [[http://clamato.net/][Clamato Smalltalk]]
-****** [[http://www.wescheme.org/][Moby Scheme]]
-*** Clojure semantics can fit well on JS
-**** i.e. defn/type/protocol won't fight with js core model
-*** ClojureJS arguably becomes most powerful lang on client
-**** Robust, simple Clojure model
-**** Macros etc
-*** Might be best way to run Clojure on mobile
-*** js a possible path to delivering Clojure libs to C-linkage clients
-**** via embedded Google V8 js engine
-**** somewhat speculative, but considering for M
-**** V8 wrappers exist for Python, Ruby, PHP etc
+*** TODO motivation
+*** Some Clojure semantics can map to Java
+*** Might be best way to run Clojure on Android
 ** How?
-*** Compiler written in Clojure, generates (readable?) JS
-*** Optionally run that JS through Google Closure js->js compiler
-**** for minification, dead code elimination etc
-*** Use Google Closure js library where needed for implementation support
-**** e.g. goog.math has Long arithmetic
-**** module system
-**** use gclosure annotations for stronger type checking or better code gen?
-**** dependency system
+*** Compiler written in Clojure, generates readable Java
+*** Use Google libraries for implementation support?
+**** Guava
+**** Cofoja?
+
+
+
+
 *** Macros written in Clojure proper, run by the compiler
 **** stick to subset in macros if eval supported
 *** Any runtime support written completely in itself
