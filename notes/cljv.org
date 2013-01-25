@@ -1,24 +1,26 @@
 * Cljv
+
 * Rationale
+
 ** What
 *** Compiler that compiles (a subset of?) Clojure to Java
+
 ** Why?
 *** TODO motivation
 *** Some Clojure semantics can map to Java
 *** Might be best way to run Clojure on Android
+
 ** How?
 *** Compiler written in Clojure, generates readable Java
 *** Use Google libraries for implementation support?
 **** Guava
 **** Cofoja?
-
-
-
-
 *** Macros written in Clojure proper, run by the compiler
-**** stick to subset in macros if eval supported
+*** No eval
 *** Any runtime support written completely in itself
 **** make deftype and protocols work early
+*** STM written in CLJV?
+
 ** Non-objectives
 *** complete Clojure
 **** feel free to subset, especially at first
@@ -26,35 +28,28 @@
 *** compiling e.g. core.clj as-is
 **** don't want to touch Clojure itself for this
 **** bootstrap will differ anyway
+
 ** Ancillary benefits
 *** Analysis component of compiler might serve Clojure-in-Clojure, or other tooling
-**** maybe - we'll need far less analysis support in js than we do in Java
-*** Boost for Clojure adoption due to increased reach
-*** Power tool for exploring next-gen client approach
+**** maybe - we'll need the same level of analysis support (maybe more) as in Clojure
+
+
 * Implementation
 ** Primitives
-*** DONE def
-*** fn*
-**** DONE basics
-**** DONE recur
-**** DONE variable arity
-**** DONE arity overloading
-**** closures shouldn't map directly to js closures? - no, they should
-***** they capture entire surrounding environment
-****** hearsay, V8 already better
-***** premature optimization to avoid that? - yes
-***** shouldn't js engines do that for us? - yes
-***** try goog.partial? - not for this
-**** variable arity how?
-***** switch on arguments.length
-*** DONE if
+*** TODO def
+*** TODO fn*
+**** TODO basics
+**** TODO recur
+**** TODO variable arity
+**** TODO arity overloading
+**** TODO closures
+**** TODO variable arity
+
+*** TODO if
 **** need to match Clojure semantics (nil/false)
 ***** must deal with undefined (group with nil/false?)
-*** DONE let*
-**** must fix local scoping problem
-***** nested fns or renaming?
-**** let* semantics
-*** DONE do
+*** TODO let*
+*** TODO do
 **** as with Java, not an expression
 **** doFn(...) -> returns last arg
 ***** must alloc array for arguments?
@@ -63,20 +58,14 @@
 ***** already Clojure special op
 ***** but wrong semantics, (var x) is *ns*-relative
 ***** no true unqualified globals in Clojure
-*** DONE recur
-**** to loop
-**** to fn head
+*** TODO recur
+**** TODO to loop
+**** TODO to fn head
 ***** can't do in single pass
-*** DONE invoke
-*** DONE macros
-*** DONE ns
-**** (ns my.ns (:require your.ns ...) (:macros a-clojure-ns ...))
-***** aliases?
-**** =>
-***** make a clojure ns? cljs.my.ns?
-***** goog.provide('my.ns'); goog.require('your.ns');
-***** (
-*** DONE deftype*
+*** TODO invoke
+*** TODO macros
+*** TODO ns
+*** TODO deftype*
 **** maps to prototype/contructor combo
 **** deftype macro is deftype* + extend-type
 ***** extend-type with ::fields meta on param vectors
@@ -84,70 +73,32 @@
 **** yes, for one-off protocol impls
 **** no ctor created, just put impls on object
 ***** can share code with putting impls on prototype?
-*** DONE defprotocol*
-**** not primitive in Clojure proper
-**** extend, when given ctor, modifies prototype with slot
-***** slot is ns-qualified
-***** what about core prototypes - Object, Array et al (String, Number, Boolean, Function)?
-****** poor citizenship to modify these?
-****** Object different in that it is used as map
-****** nested window scope issues?
-**** protocol fns just turn (my.ns/foo x a b c) into x["my.ns/foo"](a, b ,c)
-***** foo(x, a, b, c)
-****** must pass target
-***** better - x.my$ns$foo(a, b ,c)
-****** can be minified
-*** DONE extend-type
-*** defrecord?
-**** any way to get (:foo x) => x.foo?
-***** beware GClojure renaming
-*** DONE new
-**** what to do? ordinary invoke works fine
-***** new could be aliased, not special form then
-***** not ordinary - first arg not evaluated
-****** but should be in JS since new is an operator on a function, not a name
-**** new itself shouldn't be evaluated, won't pass fnOf
-**** (my.ns.Blah. x y z) - just macroexpander stuff
-**** (Blah. x y z) - requires import and registry
-***** class aliases a bigger issue, will there be more conflicts?
-***** any interpretation will fit only one ns strategy (e.g. gclosure's, and thus ClojureScript's) 
-***** start without this
-*** DONE dot
-**** field/zero-arg-method distinguished how?
-***** not, just support scoped var and be done
-*** DONE set! (assign)
-**** same binding rules?
-***** no
-**** or just allow assign to scoped 'vars'?
-*** DONE name munging
+*** TODO defprotocol*
+*** TODO extend-type
+*** TODO defrecord?
+*** TODO new
+*** TODO dot
+*** TODO set! (assign)
+*** TODO name munging
 **** special chars
-**** js reserved words
-*** DONE (js* code-string)
-**** with name escaping
+**** java reserved words
+*** TODO (java* code-string)?
+**** probably no
 *** TODO exceptions
-**** throw
-**** try
-**** catch
-***** won't have exception type
-**** finally
-*** quote?
+**** TODO throw
+**** TODO try
+**** TODO catch
+**** TODO finally
+*** TODO quote?
 *** TODO Evaluated collections
-**** Map
-**** Vector
-*** vars?
-*** case?
-*** callable non-function types?
-**** seems not possible portably
-**** could do with __proto__ (non-standard, all but IE support, even IE9 doesn't)
+**** TODO Map
+**** TODO Vector
+*** TODO vars?
+*** TODO case?
+*** TODO callable non-function types?
 **** how would Clojure feel without callable collections and keywords?
-**** could do with conditional every invocation:
-***** (f instanceof Function?f:f.cljs_lang_invoke)(args)
-***** but where to put f (in expr context)?
-****** needs helper fn
-****** fnOf(f)(args)
-******* function fnOf(x){return (f instanceof Function?f:f.cljs_lang_invoke);}
-****** i.e. every call is 2 calls
-******* tracing jit will inline?
+
+
 ** Translation
 | Op                               | JS                                 | Notes                                     | Questions                                            |
 |----------------------------------+------------------------------------+-------------------------------------------+------------------------------------------------------|
@@ -233,77 +184,40 @@
 | (:require [foo.bar :as fb]...)   |                                    |                                           |                                                      |
 | (:macros [my.macros :as mm]...)) | :require-macros?                   |                                           |                                                      |
 |----------------------------------+------------------------------------+-------------------------------------------+------------------------------------------------------|
+
+
 ** Library
-*** persistent data structures?
-**** make base literals create JS base literals? (array, object-as-map)
-***** seems a big waste not to leverage js optimization of dynamic properties
-****** or, that's what deftype is about, maps have always added overhead
-***** we care more about accessors than assignment/modification
-****** i.e. we will superimpose copy-on-write
-***** string/keyword problem
-****** can make {:a 1 :b 2 :c 3} => {a: 1, b: 2, c: 3}
-****** but (keys that) => ["a" "b" "c"]
-****** could use internal array of keys trick
-******* keys used as strings in property map
-******* kept intact in internal arrays, which is what is returned by keys fn
-******* means keys must be string distinct - ick
+*** TODO persistent data structures?
+**** make base literals create Java base types?
 **** promote only on conj?
-***** or on size as well?
+**** take a subset from Clojure for small runtime footprint?
+**** implemented in cljv?
+**** Something else? 
+
+
 ** Questions
 *** equality and hashing
-*** undefined
-**** turn into nil?
-**** can't catch everywhere
 *** vars
-**** def should create slots in global ns objects?
+**** def should create fields in class?
 **** what var semantics matter?
 *** keywords and symbols
 **** make separate object types?
 ***** not many symbols make it into runtime use, but keywords do
 **** need to make sure {:key val} and (:key obj) are fast
-**** native maps can have only string keys
 *** metadata
-**** just claim a slot?
 *** namespaces
-**** tie into gclosure module system?
-**** compile-time enumerability?
+**** tie into Java packages?
 *** eval
-**** runtime compiler?
-**** would let you develop in the browser, repl etc
-**** means compiler must self-host
-***** and needs runtime reader
-***** and syntax-quote
-**** no macros?
-***** can't do without, as so many basic things are macros
-**** won't have google closure compiler there
-***** ok, shouldn't rely on that
+**** Maybe not
+**** Beanshell?  ick
 *** laziness
-**** not a great fit
-**** GC probably not as good
-**** unlikely to be working with bigger-than-memory
-**** non-lazy mapping/filtering or mapv, filterv
-***** can make it back into Clojure
 *** Immutability
 **** enforced?
-***** or just use safe lib fns to avoid
-****** lets you use base types
-****** no final on which to base it anyway
-****** would need fancy encapsulation techniques
-******* how fancy?
-***** correct (non-assigning) code does the same thing, but incorrect not caught
-****** fair compromise?
-**** gclosure compiler can do some enforcement
-***** given some const hints in comment-based annotations
 *** Interactive development
 **** REPL
-***** easiest:
-***** Clojure read -> cljs analyze -> cljs emits -> embedded Rhino eval+print
-**** Incompatible constructs
-***** for host interop
-****** preclude development in Clojure
-**** Missing JS things
-***** e.g. DOM etc
-***** headless JS environment with DOM mocks?
+***** Beanshell?
+
+
 * Namespaces and macros
 ** Macro problem?
 *** syntax quote in the reader uses Clojure namespaces
@@ -331,15 +245,7 @@
 ******* but what macro would emit that?
 ***** install all cljs specials in dummy nses?
 ****** no, doesn't help macros file
-*** inline defmacro in cljs?
-**** calls Clojure eval of defmacro call
-**** can expand to calls to enclosing cljs ns
-***** but expander can't call code in enclosing cljs ns
-***** convention - all macro helper fns are local fns in macro
-**** gets icky for load/require purposes, as must be loaded with cljs compiler
-***** better to keep public macros separate - can use ordinary Clojure require then
-***** local macros would be ok for same-file consumption though
-**** convention - portable libs that expose macros package them separately
+
 ** Want some equivalent of refer clojure.core
 *** else practically everything will be qualified
 **** e.g. core/defn - ick
@@ -347,63 +253,28 @@
 **** requires selectivity control, or just a smaller core.cljs?
 *** this is equivalent to a 'use', which we otherwise aren't supporting
 **** unfair or don't care?
-** Any 'use' equivalent (e.g. refer core) means compile-time disambiguation of unqualified references
-*** if names a referred thing, that thing, else current.ns.name
-**** like current namespaces
-**** but if refers are limited to (entirety of) core, just look there first
-**** so double lookup instead of copying core vars into name table
-** Some core things defined in js
+
+** Some core things defined in Java
 *** where we don't want to otherwise expose things needed for their impl
 **** e.g. ==, ===, math ops, instanceOf typeof etc
 *** how to reserve names?
-**** declare in core.cljs?
-*** if in actual .js file, separate ns for deps purposes?
-**** i.e. it will be a different file than that produced by compiling core.cljs
-**** or just a wad of js injected into core.cljs?
-***** include a (js code-string) primitive for this purpose?
-****** yes, much better than js files
-****** accept only at top level? - no
-****** using in local scope means knowing how locals are represented
-****** some sort of escaping construct for getting (local and other) names resolved
-******* ~{identifier}
+**** declare in core.cljv?
 ** Are we doing forward reference detection here?
 *** requires listing of contents of current ns
 **** like namespaces
-** Are we doing extern-ns name validation?
-*** could do for cljs names, but not others
-**** e.g. goog.whatever not enumerable in cljs
-**** can we discern this situation?
-***** probably not, when compiling from files
-****** since 'require' doesn't load code at compile time
-**** another reason we can't support 'use'
-***** we do want to be able to (:require goog.foo)
-****** but not a compile-time enumerable ns
-***** or especially: (:require [goog.foo :as gfoo])
-***** means alias map, like namespaces
 ** Macros written in separate Clojure files
 *** Clojure code, in regular namespaces
-*** Means core split into core.cljs, and core-macros.clj
+*** Means core split into core.cljv, and core-macros.clj
 **** both need to be auto-referred
-*** if no use/only for macro ns, then can only get as succinct as (alias/macro ...)
-**** could allow explicit aliasing of vars instead of use
-**** extend alias for this?
-***** not really extending, alias will do this due to how nses are just vars
-***** but need not be used in that pat of resolution
-** goog.provide throws called-twice exception
-*** intended to prevent providing the same ns in more than one file
-*** actually prevents reloading same file? - aargh
-*** can't wrap, since deps checkers look for it at top level
-**** will we need to track at compilation-time?
-**** will we still need *compile-file* notion?
 ** Compilation needs
 *** current ns
-**** *cljs-ns* ?
+**** *cljv-ns* ?
 **** is this a Clojure ns?
 ***** not a fit
 ****** map is sym->Var or Class
 ****** aliases are sym->Namespace
 *** ns has:
-**** *cljs-namespaces* - {name->ns}
+**** *cljv-namespaces* - {name->ns}
 **** {:name "my.ns" :defs {sym qualified.sym} :deps {alias Namepsace-or-qualified.sym}}
 **** defs
 ***** just set of names? no map
@@ -456,26 +327,17 @@
 ***** fully.quallified.foo
 **** everything might have alias, but macros/syntax-quote need to emit full expansions
 *** how to refer to true globals?
-**** e.g. Object, String, goog
-**** [[https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects][JS Globals]]
+**** e.g. Object, String, java.lang
 **** (var Name)?
 ***** that doesn't match Clojure, where (var x) means 'whatever x means in current ns'
 ***** there are no unqualified globals in Clojure
-**** means (extend (var Object) ...) needs to work
-***** ok if extend evaluates first arg
-***** it does in Clojure, as it is a function
+
+
 * Setup
-** V8
-svn co http://v8.googlecode.com/svn/trunk v8
-cd v8/
-scons console=readline d8
-** Closure Library
-svn checkout http://closure-library.googlecode.com/svn/trunk/ closure-library
-*** or download?
-[[http://code.google.com/p/closure-library/downloads/detail%3Fname%3Dclosure-library-20110323-r790.zip&can%3D1&q%3D][Zip download]]
-** Closure Compiler
-http://closure-compiler.googlecode.com/files/compiler-latest.zip
-*** better(?):
-[[http://code.google.com/p/closure-compiler/wiki/Maven][Compiler in Maven]]
-* Prior art
 ** TBD
+
+
+* Prior art
+** Mirah is a nice place to look at compilation.
+*** Does it attempt "readability"?
+
